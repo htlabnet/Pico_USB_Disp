@@ -1,0 +1,31 @@
+# GitHub Pages (Jekyll) 設定
+
+title: Pico_USB_Disp
+description: A cross-platform library that lets microcontrollers and PCs drive external displays through supported USB display adapters, without requiring a desktop OS on embedded platforms.
+lang: en
+baseurl: "/Pico_USB_Disp"
+
+permalink: pretty
+
+# バージョン固定。上げるときは _includes/head.html (タイトル生成のオーバーライド。テーマの同ファイルのコピー+改変) も追従させること。
+remote_theme: just-the-docs/just-the-docs@v0.12.0
+plugins:
+  - jekyll-remote-theme
+
+search_enabled: true
+heading_anchors: true
+
+aux_links:
+  "GitHub Repository":
+    - "https://github.com/htlabnet/Pico_USB_Disp"
+  "Japanese Guide / 日本語解説":
+    - "https://htlab.net/electronics/mcu/raspberrypi/pico-usb-display-library/"
+
+exclude:
+  - "*.gemspec"
+  - Gemfile
+  - Gemfile.lock
+  - start_jekyll_server.bat
+  - vendor/
+
+

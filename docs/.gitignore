@@ -1,0 +1,6 @@
+# ローカルプレビュー (start_jekyll_server.bat / jekyll) の生成物
+_site/
+.jekyll-cache/
+.jekyll-metadata
+.sass-cache/
+vendor/

@@ -1,0 +1,24 @@
+
+.nav-share__button {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+
+  color: #343a40;
+  background-color: transparent;
+  border: 1px solid #6c757d;
+
+  &:hover,
+  &:focus {
+    color: #ffffff;
+    background-color: #343a40;
+    border-color: #343a40;
+  }
+}
+
+
+

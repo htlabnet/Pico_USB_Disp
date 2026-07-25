@@ -1,0 +1,7 @@
+source "https://rubygems.org"
+
+# GitHub Pages 本番と同じ Jekyll バージョン・プラグイン一式 (ローカルプレビュー用)
+gem "github-pages", group: :jekyll_plugins
+
+# Ruby 3 以降で jekyll serve に必要
+gem "webrick"

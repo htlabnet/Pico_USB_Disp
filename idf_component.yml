@@ -1,0 +1,20 @@
+version: "1.0.0"
+description: "Drive an external monitor from an ESP32-S2/S3/P4 through a USB display adapter, with no PC or OS required. DisplayLink DL-1xx on S2/S3/P4; MCT Trigger 6 / MacroSilicon MS91xx on the P4 (USB High-Speed)."
+url: "https://github.com/htlabnet/Pico_USB_Disp"
+repository: "https://github.com/htlabnet/Pico_USB_Disp.git"
+issues: "https://github.com/htlabnet/Pico_USB_Disp/issues"
+documentation: "https://htlabnet.github.io/Pico_USB_Disp/"
+license: "MIT"
+targets:
+  - esp32s2
+  - esp32s3
+  - esp32p4
+dependencies:
+  idf: ">=5.3"
+files:
+  exclude:
+    - "docs/**/*"
+    - ".github/**/*"
+    - "examples/**/build/**/*"
+    - "build/**/*"
+    - "firmware/**/*"

@@ -1,0 +1,58 @@
+{%- comment -%}
+  just-the-docs v0.12.0 の _includes/head.html のコピー+改変。
+  変更点は <title> の自前生成のみ (下の「タイトル生成」ブロック):
+    - jekyll-seo-tag の既定タイトルは「ページ | サイト」固定のため
+      {% seo title=false %} にして <title> を自前で出す
+    - トップページ (permalink: /) はサイト名のみ
+    - それ以外は「ページ - サイト」
+  テーマのバージョン (_config.yml の remote_theme) を上げるときは、
+  テーマ側 head.html の変更をこのファイルへ反映すること。
+{%- endcomment -%}
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+
+  <link rel="stylesheet" href="{{ '/assets/css/just-the-docs-default.css' | relative_url }}">
+
+  <link rel="stylesheet" href="{{ '/assets/css/just-the-docs-head-nav.css' | relative_url }}" id="jtd-head-nav-stylesheet">
+
+  <style id="jtd-nav-activation">
+  {% include css/activation.scss.liquid %}
+  </style>
+
+  {% if site.ga_tracking != nil %}
+    {% assign ga_tracking_ids = site.ga_tracking | split: "," %}
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_tracking_ids.first }}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      {% for ga_property in ga_tracking_ids %}
+        gtag('config', '{{ ga_property }}'{% unless site.ga_tracking_anonymize_ip == nil %}, { 'anonymize_ip': true }{% endunless %});
+      {% endfor %}
+    </script>
+  {% endif %}
+
+  {% if site.search_enabled != false %}
+    <script src="{{ '/assets/js/vendor/lunr.min.js' | relative_url }}"></script>
+  {% endif %}
+
+  <script src="{{ '/assets/js/just-the-docs.js' | relative_url }}"></script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  {% include_cached favicon.html %}
+
+  {%- comment -%} タイトル生成 (このファイル唯一の改変点) {%- endcomment -%}
+  {% if page.url == "/" %}
+  <title>{{ site.title }}</title>
+  {% else %}
+  <title>{{ page.title }} - {{ site.title }}</title>
+  {% endif %}
+  {% seo title=false %}
+
+  {% include head_custom.html %}
+
+</head>

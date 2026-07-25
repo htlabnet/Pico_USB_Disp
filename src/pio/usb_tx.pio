@@ -1,0 +1,122 @@
+; usb_tx.pio - PIO USB Full/Low-Speed 送信 (D+/D- 直接駆動)
+;
+; Pico-PIO-USB (MIT License, Copyright (c) 2021 sekigon-gonnoc)
+;       https://github.com/sekigon-gonnoc/Pico-PIO-USB
+; 本プロジェクト (usb_disp_udh) 向け改変版:
+;   - 送信データは usb_disp_udh_encode が NRZI+ビットスタッフ済みの
+;     2bit シンボル列 (J/K/SE0/ピン方向切替) に事前エンコードする方式。
+;     PIO 側は OUT の 2bit をプログラムカウンタへ流し込み分岐するだけ
+;   - EOP 完了を IRQ_TX_EOP で通知 (受信アーミングのタイミングに使う)
+;   - dpdm / dmdp: D+/D- の配線順 (どちらの GPIO が下か) 別のプログラム。
+;     pre_* は開始時のライン状態が違う変種 (LS プリアンブル用)
+;
+
+.define public IRQ_TX_EOP 0
+
+; ---- D+ が下位 GPIO (sideset: bit0=D+, bit1=D-) ----
+.program usb_tx_dpdm
+.side_set 2
+.define public FJ_LK 1
+
+    irq nowait IRQ_TX_EOP  side 0 [7]  ; EOP 通知 (SE0 のまま)
+.wrap_target
+symbol_j:
+    out pc, 2              side 1 [3]  ; J (D+=1, D-=0) を出して次シンボルへ
+release:
+    set pindirs, 0         side 1 [3]  ; 出力解放 (アイドルへ)
+symbol_k:
+    out pc, 2              side 2 [3]  ; K (D+=0, D-=1) を出して次シンボルへ
+attach:
+    set pindirs, 3         side 1     ; 出力駆動開始 (J から)
+.wrap
+
+; ---- 同上、開始ラインが J でなく K の変種 ----
+.program usb_tx_pre_dpdm
+.side_set 2
+
+    irq nowait IRQ_TX_EOP  side 1 [7]
+.wrap_target
+    out pc, 2              side 1 [3]
+    set pindirs, 0         side 1 [3]
+    out pc, 2              side 2 [3]
+    set pindirs, 3         side 1
+.wrap
+
+; ---- D- が下位 GPIO (逆配線。sideset: bit0=D-, bit1=D+) ----
+.program usb_tx_dmdp
+.side_set 2
+.define public FJ_LK 2
+
+    irq nowait IRQ_TX_EOP  side 0 [7]
+.wrap_target
+    out pc, 2              side 2 [3]
+    set pindirs, 0         side 2 [3]
+    out pc, 2              side 1 [3]
+    set pindirs, 3         side 2
+.wrap
+
+.program usb_tx_pre_dmdp
+.side_set 2
+
+    irq nowait IRQ_TX_EOP  side 2 [7]
+.wrap_target
+    out pc, 2              side 2 [3]
+    set pindirs, 0         side 2 [3]
+    out pc, 2              side 1 [3]
+    set pindirs, 3         side 2
+.wrap
+
+% c-sdk {
+#include "hardware/clocks.h"
+#include "sdk_compat.h"
+  static void __no_inline_not_in_flash_func(usb_tx_configure_pins)(PIO pio, uint sm, uint pin_dp, uint pin_dm) {
+    if (pin_dp < pin_dm) {
+      pio_sm_set_out_pins(pio, sm, pin_dp, 2);
+      pio_sm_set_set_pins(pio, sm, pin_dp, 2);
+      pio_sm_set_sideset_pins(pio, sm, pin_dp);
+    } else {
+      pio_sm_set_out_pins(pio, sm, pin_dm, 2);
+      pio_sm_set_set_pins(pio, sm, pin_dm, 2);
+      pio_sm_set_sideset_pins(pio, sm, pin_dm);
+    }
+  }
+  static inline void usb_tx_fs_program_init(PIO pio, uint sm, uint offset,
+                                         uint pin_dp, uint pin_dm) {
+    pio_sm_set_pins_with_mask64(pio, sm, (1ull << pin_dp), ((1ull << pin_dp) | (1ull << pin_dm)));
+    gpio_pull_down(pin_dp);
+    gpio_pull_down(pin_dm);
+    pio_gpio_init(pio, pin_dp);
+    pio_gpio_init(pio, pin_dm);
+    pio_sm_config c = usb_tx_dpdm_program_get_default_config(offset);
+    // shifts to left, autopull, 8bit
+    sm_config_set_out_shift(&c, false, true, 8);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+    // run at 48MHz
+    // clk_sys should be multiply of 12MHz
+    float div = (float)clock_get_hz(clk_sys) / (48000000UL);
+    sm_config_set_clkdiv(&c, div);
+    pio_sm_init(pio, sm, offset + 1, &c);
+    usb_tx_configure_pins(pio, sm, pin_dp, pin_dm);
+    pio_sm_set_enabled(pio, sm, true);
+  }
+  static inline void usb_tx_ls_program_init(PIO pio, uint sm, uint offset,
+                                         uint pin_dp, uint pin_dm) {
+    pio_sm_set_pins_with_mask64(pio, sm, (1ull << pin_dm), ((1ull << pin_dp) | (1ull << pin_dm)));
+    gpio_pull_down(pin_dp);
+    gpio_pull_down(pin_dm);
+    pio_gpio_init(pio, pin_dp);
+    pio_gpio_init(pio, pin_dm);
+    pio_sm_config c = usb_tx_dmdp_program_get_default_config(offset);
+    // shifts to left, autopull, 8bit
+    sm_config_set_out_shift(&c, false, true, 8);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+    // run at 6MHz
+    // clk_sys should be multiply of 12MHz
+    float div = (float)clock_get_hz(clk_sys) / (6000000UL);
+    sm_config_set_clkdiv(&c, div);
+    pio_sm_init(pio, sm, offset + 1, &c);
+    usb_tx_configure_pins(pio, sm, pin_dp, pin_dm);
+    pio_sm_set_enabled(pio, sm, true);
+  }
+%}
+

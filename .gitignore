@@ -1,0 +1,26 @@
+# ---- Arduino CLI / Arduino IDE のビルド成果物 ----
+# examples/*/build/ に .bin / .elf / .map などが出る
+build/
+
+# ---- Jekyll (docs/.gitignore にも指定あり) ----
+_site/
+.jekyll-cache/
+.jekyll-metadata
+.sass-cache/
+.bundle/
+vendor/
+
+# CI が download-artifact で生成する。リポジトリには置かない
+docs/flasher/firmware/
+
+# ---- CMake / PlatformIO ----
+cmake-build-*/
+.pio/
+
+# ---- エディタ / OS ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+

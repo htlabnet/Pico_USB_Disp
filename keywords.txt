@@ -1,0 +1,95 @@
+#######################################
+# Pico_USB_Disp keywords
+#######################################
+
+# Datatypes (KEYWORD1)
+usb_disp_t	KEYWORD1
+usb_disp_config_t	KEYWORD1
+usb_disp_mode_t	KEYWORD1
+usb_disp_chip_t	KEYWORD1
+usb_disp_fmt_t	KEYWORD1
+usb_disp_edid_policy_t	KEYWORD1
+LGFX_USB_Disp	KEYWORD1
+Panel_USB_Disp	KEYWORD1
+
+# Methods and Functions (KEYWORD2)
+usb_disp_init	KEYWORD2
+usb_disp_add	KEYWORD2
+usb_disp_add_cfg	KEYWORD2
+usb_disp_start	KEYWORD2
+usb_disp_start_manual	KEYWORD2
+usb_disp_task	KEYWORD2
+usb_disp_poll	KEYWORD2
+usb_disp_ready	KEYWORD2
+usb_disp_width	KEYWORD2
+usb_disp_height	KEYWORD2
+usb_disp_vid	KEYWORD2
+usb_disp_pid	KEYWORD2
+usb_disp_index	KEYWORD2
+usb_disp_count	KEYWORD2
+usb_disp_at	KEYWORD2
+usb_disp_stat_bytes	KEYWORD2
+usb_disp_get_host	KEYWORD2
+usb_disp_update	KEYWORD2
+usb_disp_update_565	KEYWORD2
+usb_disp_update_888	KEYWORD2
+usb_disp_fill	KEYWORD2
+usb_disp_copy	KEYWORD2
+usb_disp_flush	KEYWORD2
+usb_disp_blank	KEYWORD2
+usb_disp_set_mode	KEYWORD2
+usb_disp_set_mode_hz	KEYWORD2
+usb_disp_set_mode_ex	KEYWORD2
+usb_disp_set_auto_mode	KEYWORD2
+usb_disp_current_mode	KEYWORD2
+usb_disp_refresh_hz	KEYWORD2
+usb_disp_builtin_mode_count	KEYWORD2
+usb_disp_builtin_mode	KEYWORD2
+usb_disp_set_depth	KEYWORD2
+usb_disp_depth	KEYWORD2
+usb_disp_set_shadow	KEYWORD2
+usb_disp_shadow_active	KEYWORD2
+usb_disp_shadow_row	KEYWORD2
+usb_disp_chip	KEYWORD2
+usb_disp_chip_name	KEYWORD2
+usb_disp_model	KEYWORD2
+usb_disp_model_name	KEYWORD2
+usb_disp_max_area	KEYWORD2
+usb_disp_read_edid	KEYWORD2
+usb_disp_read_edid_at	KEYWORD2
+usb_disp_edid_size	KEYWORD2
+usb_disp_edid_supports	KEYWORD2
+usb_disp_edid_max_mode	KEYWORD2
+usb_disp_set_edid_policy	KEYWORD2
+usb_disp_edid_policy	KEYWORD2
+usb_disp_set_ignore_edid	KEYWORD2
+usb_disp_ignore_edid	KEYWORD2
+usb_disp_force_reenum	KEYWORD2
+usb_disp_supported_device	KEYWORD2
+usb_disp_set_log	KEYWORD2
+usb_disp_log	KEYWORD2
+usb_disp_lvgl_create	KEYWORD2
+
+# Constants (LITERAL1)
+USB_DISP_MAX_WIDTH	LITERAL1
+USB_DISP_MAX	LITERAL1
+USB_DISP_CHIP_UNKNOWN	LITERAL1
+USB_DISP_CHIP_DL120	LITERAL1
+USB_DISP_CHIP_DL160	LITERAL1
+USB_DISP_CHIP_DL1X0	LITERAL1
+USB_DISP_CHIP_DL115	LITERAL1
+USB_DISP_CHIP_DL125	LITERAL1
+USB_DISP_CHIP_DL165	LITERAL1
+USB_DISP_CHIP_DL195	LITERAL1
+USB_DISP_CHIP_DL1X5	LITERAL1
+USB_DISP_CHIP_T6	LITERAL1
+USB_DISP_CHIP_MS912X	LITERAL1
+USB_DISP_CHIP_MS913X	LITERAL1
+USB_DISP_FMT_RGB565	LITERAL1
+USB_DISP_FMT_RGB888	LITERAL1
+USB_DISP_EDID_POLICY_MAX	LITERAL1
+USB_DISP_EDID_POLICY_PREFERRED	LITERAL1
+USB_DISP_PORT_PICO	LITERAL1
+USB_DISP_PORT_ESP32	LITERAL1
+USB_DISP_PORT_TEENSY	LITERAL1
+USB_DISP_PORT_LIBUSB	LITERAL1

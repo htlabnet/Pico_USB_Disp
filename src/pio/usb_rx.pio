@@ -1,0 +1,182 @@
+; usb_rx.pio - PIO USB Full-Speed 受信 (エッジ検出 + NRZI デコード)
+;
+; Pico-PIO-USB (MIT License, Copyright (c) 2021 sekigon-gonnoc)
+;       https://github.com/sekigon-gonnoc/Pico-PIO-USB
+; 本プロジェクト (usb_disp_udh) 向け改変版。2つの SM が協調する:
+;   - usb_edge_detector: D+ のエッジで DECODER_TRIGGER (IRQ4) を発火し、
+;     SE0 (EOP) を検出したら IRQ_RX_EOP で本体へ通知する
+;   - usb_nrzi_decoder: IRQ4 のたびに D+ をサンプルして NRZI デコード
+;     (トグル=0/維持=1) + ビットスタッフ除去し ISR へ積む
+;   *_debug 変種はデバッグピンに内部状態を side-set で出す観測用
+;
+
+.define public IRQ_RX_BS_ERR 1
+.define public IRQ_RX_EOP 2
+.define public IRQ_RX_START 3
+.define public DECODER_TRIGGER 4
+
+; ---- エッジ検出 + EOP 検出 (96MHz = 8x オーバーサンプル) ----
+.program usb_edge_detector
+
+start:
+    irq wait IRQ_RX_EOP            ; EOP: 本体の処理完了を待つ
+idle:
+    jmp pin, idle                  ; アイドル (D+ high) の間待つ
+    irq nowait IRQ_RX_START    [1] ; パケット開始 (SOP)
+.wrap_target
+edge:
+    irq nowait DECODER_TRIGGER [1] ; デコーダへサンプル指示
+    jmp pin, se0_chk               ; D+ high → トグル検出ループへ
+    jmp pin, se0_chk
+resume:
+    jmp pin, se0_chk               ; ここへ戻って検出継続 (wait_low から)
+    jmp pin, se0_chk
+    jmp pin, se0_chk
+    jmp pin, se0_chk
+.wrap
+count:
+    mov x, isr                 [1]
+    jmp x--, start                 ; SE0 が続いた → EOP → 先頭へ
+se0_chk:
+    mov isr, null              [1] ; SE0 連続カウンタをクリア
+    irq nowait DECODER_TRIGGER
+wait_low:
+    in pins, 1
+    jmp pin, count                 ; まだ high → SE0 判定カウントへ
+    jmp resume                     ; low へ戻った → 検出継続
+
+; ---- 同上 + デバッグピン出力 ----
+.program usb_edge_detector_debug
+.side_set 1
+
+start:
+    irq wait IRQ_RX_EOP            side 0
+idle:
+    jmp pin, idle                  side 1
+    irq nowait IRQ_RX_START        side 0 [1]
+.wrap_target
+edge:
+    irq nowait DECODER_TRIGGER     side 0 [1]
+    jmp pin, se0_chk               side 1
+    jmp pin, se0_chk               side 1
+resume:
+    jmp pin, se0_chk               side 1
+    jmp pin, se0_chk               side 1
+    jmp pin, se0_chk               side 1
+    jmp pin, se0_chk               side 1
+.wrap
+count:
+    mov x, isr                     side 1 [1]
+    jmp x--, start                 side 1
+se0_chk:
+    mov isr, null                  side 1 [1]
+    irq nowait DECODER_TRIGGER     side 0
+wait_low:
+    in pins, 1                     side 0
+    jmp pin, count                 side 0
+    jmp resume                     side 1
+
+; ---- NRZI デコード (DECODER_TRIGGER 毎に 1bit) ----
+.program usb_nrzi_decoder
+
+.wrap_target
+restart:
+    set y, 6                       ; ビットスタッフカウンタ (1 が 6 連続で除去)
+sample:
+    wait 1 irq, DECODER_TRIGGER
+    jmp !y, toggle0                ; ビットスタッフ境界 (6連続) はビット出力なし
+    jmp pin, high
+    jmp !x, stuffed
+emit0:
+    in null, 1                     ; トグル = 0
+toggle0:
+    mov x, !x
+.wrap
+high:
+    jmp !x, emit0
+stuffed:
+    in osr, 1                      ; 維持 = 1 (osr は all-1)
+    jmp y--, sample
+
+; ---- 同上 + デバッグピン出力 (side-set 任意) ----
+.program usb_nrzi_decoder_debug
+.side_set 1 opt
+
+.wrap_target
+restart:
+    set y, 6
+sample:
+    wait 1 irq, DECODER_TRIGGER
+    jmp !y, toggle0
+    jmp pin, high
+    jmp !x, stuffed                side 0
+emit0:
+    in null, 1
+toggle0:
+    mov x, !x
+.wrap
+high:
+    jmp !x, emit0                  side 1
+stuffed:
+    in osr, 1
+    jmp y--, sample
+
+% c-sdk {
+#include "hardware/clocks.h"
+#include "sdk_compat.h"
+static inline void usb_rx_fs_program_init(PIO pio, uint sm, uint offset, uint pin_dp, uint pin_dm, int pin_debug) {
+  if (pin_dp < pin_dm) {
+    pio_sm_set_consecutive_pindirs(pio, sm, pin_dp, 2, false);
+  } else {
+    pio_sm_set_consecutive_pindirs(pio, sm, pin_dm, 2, false);
+  }
+  gpio_pull_down(pin_dp);
+  gpio_pull_down(pin_dm);
+  gpio_set_inover(pin_dp, GPIO_OVERRIDE_INVERT);
+  gpio_set_inover(pin_dm, GPIO_OVERRIDE_INVERT);
+  pio_sm_config c;
+  if (pin_debug < 0) {
+    c = usb_nrzi_decoder_program_get_default_config(offset);
+  } else {
+    c = usb_nrzi_decoder_debug_program_get_default_config(offset);
+    pio_sm_set_pins_with_mask64(pio, sm, 0, 1ull << pin_debug);
+    pio_sm_set_pindirs_with_mask64(pio, sm, 1ull << pin_debug, 1ull << pin_debug);
+    pio_gpio_init(pio, pin_debug);
+    sm_config_set_sideset_pins(&c, pin_debug);
+  }
+  sm_config_set_in_pins(&c, pin_dp);  // for WAIT, IN
+  sm_config_set_jmp_pin(&c, pin_dp);  // for JMP
+  // Shift to right, autopush enabled, 8bit
+  sm_config_set_in_shift(&c, true, true, 8);
+  sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
+  pio_sm_init(pio, sm, offset, &c);
+  pio_sm_exec(pio, sm, pio_encode_mov_not(pio_osr, pio_null));
+  pio_sm_set_enabled(pio, sm, false);
+}
+static inline void eop_detect_fs_program_init(PIO pio, uint sm, uint offset,
+                                           uint pin_dp, uint pin_dm, bool is_fs, int pin_debug) {
+  pio_sm_config c;
+  if (pin_debug < 0) {
+    c = usb_edge_detector_program_get_default_config(offset);
+  } else {
+    c = usb_edge_detector_debug_program_get_default_config(offset);
+    pio_sm_set_pins_with_mask64(pio, sm, 0, 1ull << pin_debug);
+    pio_sm_set_pindirs_with_mask64(pio, sm, 1ull << pin_debug, 1ull << pin_debug);
+    pio_gpio_init(pio, pin_debug);
+    sm_config_set_sideset_pins(&c, pin_debug);
+  }
+  sm_config_set_in_pins(&c, pin_dp);  // for WAIT, IN
+  sm_config_set_jmp_pin(&c, pin_dm);  // for JMP
+  sm_config_set_in_shift(&c, false, false, 8);
+  float div;
+  if (is_fs) {
+    div = (float)clock_get_hz(clk_sys) / (96000000);
+  } else {
+    div = (float)clock_get_hz(clk_sys) / (12000000);
+  }
+  sm_config_set_clkdiv(&c, div);
+  pio_sm_init(pio, sm, offset, &c);
+  pio_sm_set_enabled(pio, sm, true);
+}
+%}
+

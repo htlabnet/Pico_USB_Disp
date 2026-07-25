@@ -1,0 +1,275 @@
+---
+layout: default
+title: Web Flasher
+nav_order: 3
+---
+
+<h1>Pico_USB_Disp - Web Flasher</h1>
+
+<p>
+  You can flash the test firmware (<code>examples/DisplayInfo</code>) directly from your browser. 
+  After flashing, connect a USB display adapter to the board's USB host port and the environment information - MCU / chip / resolution / EDID / full-frame transfer speed (best / worst-case fps) - is shown on the screen.
+  For a compatibility report, a single photo of that screen tells the whole story. 
+  The same information is also mirrored to the serial port every second (115200 bps; an ANSI-capable terminal is recommended).
+</p>
+
+<div style="padding: 0.75em 1em; border-left: 4px solid #7253ed; background: rgba(114, 83, 237, 0.08); margin-bottom: 1.5em;">
+  <strong>Requirements:</strong> Flashing from this page requires a browser that supports the Web Serial / File System Access APIs (Chrome / Edge).
+  The flash buttons do not work in Firefox / Safari (downloading the UF2 files for the Pico still works).
+  Teensy boards cannot be flashed from any browser - download the HEX file and use the Teensy Loader (see the Teensy section below).
+</div>
+
+<h2>ESP32-S2 / S3 / P4</h2>
+
+<p>
+  Connect the board's programming USB port to your PC, press "Connect &amp; Flash", and select the serial port. 
+  <strong>The chip (S2 / S3 / P4) is detected automatically</strong> and the matching firmware is flashed right here on this page (the flashing engine is Espressif's official <a href="https://github.com/espressif/esptool-js">esptool-js</a>).
+</p>
+
+<ul>
+  <li>ESP32-S2 / S3 - Full-Speed host (for DL-1xx)</li>
+  <li>ESP32-P4 - High-Speed host (all supported chips)</li>
+</ul>
+
+<p>
+  <button id="esp-flash-btn" class="btn btn-primary">Connect &amp; Flash</button>
+  <progress id="esp-progress" value="0" max="100" style="display: none; width: 14em; vertical-align: middle;"></progress>
+</p>
+<p id="esp-status" style="font-weight: bold;"></p>
+<details>
+  <summary>Detailed log</summary>
+  <pre id="esp-log" style="max-height: 14em; overflow-y: auto;"></pre>
+</details>
+
+<script type="module">
+import { ESPLoader, Transport } from "https://unpkg.com/esptool-js@0.5.4/bundle.js";
+
+var FIRMWARE = {
+  "ESP32-S2": "firmware/displayinfo-esp32s2-merged.bin",
+  "ESP32-S3": "firmware/displayinfo-esp32s3-merged.bin",
+  "ESP32-P4": "firmware/displayinfo-esp32p4-merged.bin",
+};
+
+var btn = document.getElementById("esp-flash-btn");
+var stEl = document.getElementById("esp-status");
+var logEl = document.getElementById("esp-log");
+var prog = document.getElementById("esp-progress");
+
+function status(msg, ok) {
+  stEl.textContent = msg;
+  stEl.style.color = ok ? "#2e7d32" : "#c62828";
+}
+var espTerminal = {
+  clean: function () { logEl.textContent = ""; },
+  writeLine: function (data) { logEl.textContent += data + "\n"; logEl.scrollTop = logEl.scrollHeight; },
+  write: function (data) { logEl.textContent += data; logEl.scrollTop = logEl.scrollHeight; },
+};
+
+btn.addEventListener("click", async function () {
+  if (!navigator.serial) {
+    status("This browser does not support the Web Serial API (please use Chrome / Edge).", false);
+    return;
+  }
+  btn.disabled = true;
+  prog.style.display = "none";
+  var transport = null;
+  try {
+    var device = await navigator.serial.requestPort();
+    transport = new Transport(device, true);
+    status("Connecting...", true);
+    var esploader = new ESPLoader({ transport: transport, baudrate: 460800, terminal: espTerminal });
+    var chip = await esploader.main();
+
+    var key = Object.keys(FIRMWARE).find(function (k) { return String(chip).indexOf(k) >= 0; });
+    if (!key) {
+      status("Unsupported chip: " + chip + " (supported: S2 / S3 / P4)", false);
+      return;
+    }
+
+    status(key + " detected. Fetching firmware...", true);
+    var resp = await fetch(FIRMWARE[key]);
+    if (!resp.ok) {
+      status("Failed to fetch the firmware (" + resp.status + "). The build may not have been deployed yet.", false);
+      return;
+    }
+    var buf = new Uint8Array(await resp.arrayBuffer());
+    var data = "";
+    for (var i = 0; i < buf.length; i += 0x8000)
+      data += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
+
+    status("Flashing " + key + "... (" + Math.round(buf.length / 1024) + " KB)", true);
+    prog.style.display = "inline-block";
+    prog.value = 0;
+    await esploader.writeFlash({
+      fileArray: [{ data: data, address: 0 }],
+      flashSize: "keep",
+      eraseAll: false,
+      compress: true,
+      reportProgress: function (fileIndex, written, total) { prog.value = (written / total) * 100; },
+    });
+    await esploader.after();
+    status("Flashing complete. The board will now reboot.", true);
+  } catch (e) {
+    if (e && e.name === "NotFoundError") {
+      status("", true);
+    } else {
+      status("Error: " + e, false);
+    }
+  } finally {
+    if (transport) { try { await transport.disconnect(); } catch (e2) {} }
+    btn.disabled = false;
+  }
+});
+</script>
+
+<h2>Raspberry Pi Pico / Pico 2 (RP2040 / RP2350)</h2>
+
+<p>
+  Connect the board to your PC with a USB cable <strong>while holding the BOOTSEL button</strong>; a drive named <code>RPI-RP2</code> (RP2040) or <code>RP2350</code> will appear. 
+  Then press "Write to Drive" and select that drive. 
+  The board type is verified before the UF2 is written directly.
+  In browsers where the button does not work, downloading the UF2 and copying it to the drive (drag &amp; drop) does exactly the same thing.
+</p>
+
+<p>
+  Pick the row that matches your D+/D- wiring (GPIO), then the UF2 that matches your chip (RP2040 = Pico family / RP2350 = Pico 2 family). 
+  Every combination is provided for both chips.
+</p>
+
+<div style="overflow-x: auto;">
+<table>
+  <thead>
+    <tr><th>Wiring (D+ / D-)</th><th>Typical board</th><th>RP2040</th><th>RP2350</th></tr>
+  </thead>
+  <tbody>
+
+    <tr>
+      <td>GPIO0 / GPIO1</td>
+      <td><a href="https://www.switch-science.com/products/9158" target="_blank" rel="noopener noreferrer">スイッチサイエンス Picossci USB ホスト</a></td>
+      <td>
+        <button class="btn btn-primary" onclick="flashUf2(this, 'firmware/displayinfo-rp2040-gpio0.uf2', 'RPI-RP2')">Write to Drive</button><br>
+        <a href="firmware/displayinfo-rp2040-gpio0.uf2">Download</a>
+      </td>
+      <td>
+        <button class="btn btn-primary" onclick="flashUf2(this, 'firmware/displayinfo-rp2350-gpio0.uf2', 'RP2350')">Write to Drive</button><br>
+        <a href="firmware/displayinfo-rp2350-gpio0.uf2">Download</a>
+      </td>
+    </tr>
+    <tr>
+      <td>GPIO12 / GPIO13</td>
+      <td><a href="https://www.waveshare.com/wiki/RP2350-USB-A" target="_blank" rel="noopener noreferrer">Waveshare RP2350-USB-A</a></td>
+      <td>
+        <button class="btn btn-primary" onclick="flashUf2(this, 'firmware/displayinfo-rp2040-gpio12.uf2', 'RPI-RP2')">Write to Drive</button><br>
+        <a href="firmware/displayinfo-rp2040-gpio12.uf2">Download</a>
+      </td>
+      <td>
+        <button class="btn btn-primary" onclick="flashUf2(this, 'firmware/displayinfo-rp2350-gpio12.uf2', 'RP2350')">Write to Drive</button><br>
+        <a href="firmware/displayinfo-rp2350-gpio12.uf2">Download</a>
+      </td>
+    </tr>
+    <tr>
+      <td>GPIO16 / GPIO17</td>
+      <td><a href="https://learn.adafruit.com/adafruit-feather-rp2040-with-usb-type-a-host" target="_blank" rel="noopener noreferrer">Adafruit Feather RP2040 with USB Type A Host</a></td>
+      <td>
+        <button class="btn btn-primary" onclick="flashUf2(this, 'firmware/displayinfo-rp2040-gpio16.uf2', 'RPI-RP2')">Write to Drive</button><br>
+        <a href="firmware/displayinfo-rp2040-gpio16.uf2">Download</a>
+      </td>
+      <td>
+        <button class="btn btn-primary" onclick="flashUf2(this, 'firmware/displayinfo-rp2350-gpio16.uf2', 'RP2350')">Write to Drive</button><br>
+        <a href="firmware/displayinfo-rp2350-gpio16.uf2">Download</a>
+      </td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p id="uf2-status" style="font-weight: bold;"></p>
+
+<script>
+async function flashUf2(btn, url, boardId) {
+  var st = document.getElementById('uf2-status');
+  function say(msg, ok) {
+    st.textContent = msg;
+    st.style.color = ok ? '#2e7d32' : '#c62828';
+  }
+  if (!window.showDirectoryPicker) {
+    say('This browser does not support the File System Access API. Please download the UF2 and copy it to the drive.', false);
+    return;
+  }
+  btn.disabled = true;
+  try {
+    say('Please select the drive... (RPI-RP2 / RP2350)', true);
+    var dir = await window.showDirectoryPicker({ mode: 'readwrite' });
+    var info;
+    try {
+      var fh = await dir.getFileHandle('INFO_UF2.TXT');
+      info = await (await fh.getFile()).text();
+    } catch (e) {
+      say('The selected folder is not a UF2 bootloader drive (no INFO_UF2.TXT). Reconnect the board while holding BOOTSEL.', false);
+      return;
+    }
+    if (info.indexOf('Board-ID: ' + boardId) < 0) {
+      var m = info.match(/Board-ID:\s*(\S+)/);
+      say('Board type mismatch (connected: ' + (m ? m[1] : 'unknown') +
+          ' / this UF2 targets: ' + boardId + '). Please use the UF2 from the matching row.', false);
+      return;
+    }
+
+    say('Fetching firmware...', true);
+    var resp = await fetch(url);
+    if (!resp.ok) {
+      say('Failed to fetch the firmware (' + resp.status + '). The build may not have been deployed yet.', false);
+      return;
+    }
+    var buf = await resp.arrayBuffer();
+
+    say('Writing... (' + Math.round(buf.byteLength / 1024) + ' KB)', true);
+    try {
+      var out = await dir.getFileHandle('firmware.uf2', { create: true });
+      var w = await out.createWritable({ keepExistingData: false });
+      await w.write(buf);
+      await w.close();
+    } catch (e) {
+      say('Write complete (if the drive disappeared, it succeeded).', true);
+      return;
+    }
+    say('Write complete. The board will now reboot.', true);
+  } catch (e) {
+    if (e && e.name === 'AbortError') { say('', true); return; }
+    say('Error: ' + e, false);
+  } finally {
+    btn.disabled = false;
+  }
+}
+</script>
+
+<h2>Teensy 4.0 / 4.1</h2>
+
+<p>
+  The Teensy bootloader (HalfKay) is not reachable from a browser, so there is no flash button here.
+  Download the HEX file for your board and write it with PJRC's
+  <a href="https://www.pjrc.com/teensy/loader.html" target="_blank" rel="noopener noreferrer">Teensy Loader</a>
+  (a small standalone tool for Windows / macOS / Linux; if you have installed the Teensy board package for the Arduino IDE, it is already on your machine).
+</p>
+
+<ul>
+  <li><a href="firmware/displayinfo-teensy41.hex">Download: Teensy 4.1</a> (USB host header on the board)</li>
+  <li><a href="firmware/displayinfo-teensy40.hex">Download: Teensy 4.0</a> (D+/D- pads on the bottom side)</li>
+</ul>
+
+<ol>
+  <li>Open the Teensy Loader and load the downloaded file via <strong>File &gt; Open HEX File</strong>.</li>
+  <li>Connect the Teensy to your PC with a USB cable and <strong>press the button on the Teensy</strong> (this enters the bootloader).</li>
+  <li>With "Auto" mode enabled (default), the firmware is written and the board reboots automatically. Otherwise use <strong>Operation &gt; Program</strong>, then <strong>Operation &gt; Reboot</strong>.</li>
+</ol>
+
+<p>
+  After flashing, connect the display adapter to the USB <em>host</em> port:
+  on the Teensy 4.1 this is the 5-pin header in the middle of the board (solder pins and use a
+  <a href="https://www.pjrc.com/store/cable_usb_host_t36.html" target="_blank" rel="noopener noreferrer">USB host cable</a>);
+  on the Teensy 4.0 wire the bottom-side D+/D- pads plus 5V / GND to a USB-A female connector.
+  The serial mirror is available on the main (micro-USB) port at 115200 bps as usual.
+</p>
+
+
+

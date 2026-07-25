@@ -1,0 +1,154 @@
+# GitHub Pages のビルド・デプロイ (Web Flasher 用ファームウェア自動ビルド込み)
+#
+# push時に実行されること:
+#   1. examples/DisplayInfo を全ターゲット向けに arduino-cli でビルド
+#       - ESP32-S2/S3/P4 = merged.bin
+#       - RP2040/RP2350 = ピンパターン別 UF2
+#       - Teensy 4.0/4.1 = hex
+#   2. docs/ を Jekyll でビルドし、ファームウェアを flasher/firmware/ に
+#   3. GitHub Pages へデプロイ
+#
+
+name: pages
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# デプロイ中に次の push が来ても中断しない
+# 後続の run はキューで待つ
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  BOARD_URLS: >-
+    https://espressif.github.io/arduino-esp32/package_esp32_index.json,https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json,https://www.pjrc.com/teensy/package_teensy_index.json
+  # コアのバージョンはここが唯一の定義元
+  ESP32_CORE: 3.3.11
+  RP2040_CORE: 6.0.0
+  TEENSY_CORE: 1.62.0
+
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # ファームウェアのビルドが失敗しても docs のデプロイは止めない
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: arduino/setup-arduino-cli@v2
+
+      # キャッシュ対策でキーにコアのバージョンを含める
+      - name: Cache Arduino cores
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.arduino15
+            ~/.cache/arduino
+          key: arduino-cores-${{ runner.os }}-esp${{ env.ESP32_CORE }}-rp${{ env.RP2040_CORE }}-tee${{ env.TEENSY_CORE }}
+          restore-keys: |
+            arduino-cores-${{ runner.os }}-
+
+      # コアはバージョン固定。上げるときはローカルでビルド・実機確認してから
+      - name: Install cores (esp32 / rp2040 / teensy)
+        run: |
+          arduino-cli core update-index --additional-urls "$BOARD_URLS"
+          arduino-cli core install \
+            "esp32:esp32@$ESP32_CORE" \
+            "rp2040:rp2040@$RP2040_CORE" \
+            "teensy:avr@$TEENSY_CORE" \
+            --additional-urls "$BOARD_URLS"
+
+      - name: Build DisplayInfo for all targets
+        run: |
+          set -e
+          SKETCH=examples/DisplayInfo
+          mkdir -p firmware
+
+          build_esp() {  # <名前> <fqbn>
+            arduino-cli compile --fqbn "$2" --library "$PWD" \
+              --output-dir "build/$1" "$SKETCH"
+            cp "build/$1/DisplayInfo.ino.merged.bin" "firmware/displayinfo-$1-merged.bin"
+          }
+          build_pico() {  # <名前> <fqbn> <D+> <D->
+            arduino-cli compile --fqbn "$2" --library "$PWD" \
+              --build-property "compiler.cpp.extra_flags=-DUSB_DISP_PIN_DP=$3 -DUSB_DISP_PIN_DM=$4" \
+              --output-dir "build/$1" "$SKETCH"
+            cp "build/$1/DisplayInfo.ino.uf2" "firmware/displayinfo-$1.uf2"
+          }
+          build_teensy() {  # <名前> <fqbn> (HEX は Teensy Loader で書き込む)
+            arduino-cli compile --fqbn "$2" --library "$PWD" \
+              --output-dir "build/$1" "$SKETCH"
+            cp "build/$1/DisplayInfo.ino.hex" "firmware/displayinfo-$1.hex"
+          }
+
+          build_esp  esp32s2       esp32:esp32:esp32s2
+          build_esp  esp32s3       esp32:esp32:esp32s3
+          build_esp  esp32p4       esp32:esp32:esp32p4
+          build_teensy teensy40    teensy:avr:teensy40
+          build_teensy teensy41    teensy:avr:teensy41
+          # Pico 系は RP2040 / RP2350 の両方を全ピンパターンでビルドする
+          #   GPIO 0/1   = Picossci USB ホスト
+          #   GPIO 12/13 = RP2350-USB-A
+          #   GPIO 16/17 = Feather RP2040 USB Host
+          for chip in rp2040:rpipico rp2350:rpipico2; do
+            name="${chip%%:*}"; board="rp2040:rp2040:${chip##*:}"
+            build_pico "$name-gpio0"  "$board"  0  1
+            build_pico "$name-gpio12" "$board" 12 13
+            build_pico "$name-gpio16" "$board" 16 17
+          done
+
+          ls -la firmware/
+
+      # deploy ジョブへの一時的な受け渡し用
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: firmware
+          path: firmware/
+          retention-days: 1
+          if-no-files-found: warn
+
+  deploy:
+    needs: firmware
+    # firmware が失敗しても実行する (手動キャンセル時のみスキップ)
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # artifact が無い / 欠けていてもデプロイは続行
+      - name: Inject firmware into docs
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: firmware
+          path: docs/flasher/firmware
+
+      - uses: actions/configure-pages@v5
+
+      - name: Build with Jekyll
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./docs
+          destination: ./_site
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./_site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
