@@ -4,7 +4,7 @@
 //    LovyanGFX_Demo - Pico_USB_Disp + LovyanGFX サンプル
 //
 //    必要ライブラリ: LovyanGFX (ライブラリマネージャで導入)
-//    ※ Teensy 4.x は LovyanGFX の 1.2.26 以降のリリースで対応
+//    ※ Teensy 4.x は LovyanGFX の 1.2.27 以降のリリースで対応
 //
 //    LGFX_USB_Disp クラスは <usb_disp.h> だけで使える
 //

@@ -136,7 +136,7 @@ lcd.drawCircle(960, 540, 100, TFT_CYAN);
 Limitations: no readback / rotation fixed to 0. Color depth is 16-bit by default; 24-bit is available via `lcd.setColorDepth(24)`. 
 Sprites work with full functionality. -> See the `LovyanGFX_Demo` example.
 
-Note: **not available on Teensy 4.x** - LovyanGFX itself does not support the i.MX RT platform (its platform layer fails to compile; nothing this library can work around). On Teensy, use LVGL instead.
+Note: **Teensy 4.x requires LovyanGFX 1.2.27 or later** - earlier releases do not support the i.MX RT platform (their platform layer fails to compile).
 
 
 ### LVGL (v9)
@@ -210,7 +210,7 @@ The core voltage (vreg) is never changed. If you want a higher clock, set it you
 | ColorBars         | Minimal use of the raw API |
 | DisplayInfo       | Showing MCU / chip / resolution / EDID / FPS on screen (the Web Flasher firmware; one photo of this screen makes a compatibility report) |
 | FixedResolution   | Fixing the resolution (including `ignore_edid`) and changing it at runtime |
-| LovyanGFX_Demo    | Using the library with LovyanGFX (not on Teensy - LovyanGFX has no i.MX RT support) |
+| LovyanGFX_Demo    | Using the library with LovyanGFX (Teensy requires LovyanGFX 1.2.27 or later) |
 | LVGL_Demo         | Using the library with LVGL v9 |
 | MultiDisplay      | Driving two displays at once (Pico / Pico 2) |
 | RGB888_Demo       | 24-bit color (RGB888): side-by-side gradients to compare banding against 16-bit, with runtime depth switching |

@@ -366,7 +366,7 @@ LGFX_USB_Disp lcd;
 ```
 
 Limitations: no readback / rotation fixed to 0. Color depth is 16 (default) or 24, selectable via `lcd.setColorDepth(24)`. 
-Not available on Teensy 4.x (LovyanGFX does not support the i.MX RT); use the plain drawing API or LVGL there.
+Teensy 4.x requires LovyanGFX 1.2.27 or later (earlier releases do not support the i.MX RT).
 
 
 
