@@ -71,7 +71,7 @@ While some of the encryption appears to have been analyzed, this has not yet res
 
 | Manufacturer | Model Number | Output | Chip | Status |
 |---|---|---|---|---|
-| Hewlett Packard       | [NL571AA / 584670-001]({{ '/assets/images/hardware/NL571AA.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}  | DVI   | **DL-165**    | Supported |
+| Hewlett Packard       | [NL571AA / 584670-001]({{ '/assets/images/hardware/NL571AA.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}  | DVI   | **DL-165**    | ✅ Supported |
 | Plugable              | UGA-125               | DVI   | DL-125?   | Untested |
 | Plugable              | UGA-M165              | DVI   | DL-165?   | Untested |
 | Plugable              | UGA-165               | DVI   | DL-165?   | Untested |
@@ -80,7 +80,7 @@ While some of the encryption appears to have been analyzed, this has not yet res
 | StarTech              | USB2HDMI              | HDMI  | DL-165?   | Untested |
 | StarTech              | USB2DVIPRO2           | DVI   | DL-195?   | Untested |
 | StarTech              | USB2VGAPRO2           | VGA   | DL-195?   | Untested |
-| WAVLINK               | WL-UG17D1             | DVI   | DL-165?   | Untested |
+| WAVLINK               | [WL-UG17D1]({{ '/assets/images/hardware/WL-UG17D1.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}             | DVI   | **DL-165**   | ✅ Supported |
 | WAVLINK               | WL-UG17D2             | DVI   | DL-165?   | Untested |
 | Diamond Multimedia    | BVU160                | DVI   | DL-160?   | Untested |
 | Diamond Multimedia    | BVU165                | DVI   | DL-165?   | Untested |
@@ -101,37 +101,38 @@ While some of the encryption appears to have been analyzed, this has not yet res
 | Sewell                | SW-22857              | DVI   | ?         | Untested |
 | SIIG                  | JU-DV0112-S1          | DVI   | ?         | Untested |
 | Sabrent               | UGA-2K-195            | DVI   | DL-195?   | Untested |
-| アイ・オー・データ    | USB-RGB               | VGA   | DL-120    | Supported |
-| アイ・オー・データ    | USB-RGB/D             | DVI   | DL-160    | Supported |
-| アイ・オー・データ    | USB-RGB2              | VGA   | DL-125    | Supported |
-| アイ・オー・データ    | USB-RGB/D2            | DVI   | **DL-195**    | Supported |
+| アイ・オー・データ    | [USB-RGB]({{ '/assets/images/hardware/USB-RGB.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}               | VGA   | DL-120    | ✅ Supported |
+| アイ・オー・データ    | [USB-RGB/D]({{ '/assets/images/hardware/USB-RGB_D.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}             | DVI   | DL-160    | ✅ Supported |
+| アイ・オー・データ    | [USB-RGB2]({{ '/assets/images/hardware/USB-RGB2.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}              | VGA   | DL-125    | ✅ Supported |
+| アイ・オー・データ    | [USB-RGB/D2]({{ '/assets/images/hardware/USB-RGB_D2.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}            | DVI   | **DL-195**    | ✅ Supported |
 | アイ・オー・データ    | USB-RGB/D2S           | DVI   | ?         | Untested |
-| バッファロー          | GX-DVI/U2             | DVI   | DL-160    | Supported |
-| バッファロー          | GX-DVI/U2AI           | DVI   | **DL-195**    | Supported[^GX-DVIU2AI] |
-| バッファロー          | GX-DVI/U2B            | DVI   | ?         | Untested |
-| バッファロー          | GX-DVI/U2C            | DVI   | ?         | Untested |
-| バッファロー          | GX-HDMI/U2            | HDMI  | **DL-165**    | Supported |
+| バッファロー          | [GX-DVI/U2]({{ '/assets/images/hardware/GX-DVI_U2.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}             | DVI   | DL-160    | ✅ Supported |
+| バッファロー          | [GX-DVI/U2AI]({{ '/assets/images/hardware/GX-DVI_U2AI.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}           | DVI   | **DL-195**    | ✅ Supported[^GX-DVIU2AI] |
+| バッファロー          | [GX-DVI/U2B]({{ '/assets/images/hardware/GX-DVI_U2B.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}            | DVI   | **DL-165**    | ✅ Supported |
+| バッファロー          | [GX-DVI/U2C]({{ '/assets/images/hardware/GX-DVI_U2C.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}            | DVI   | **DL-195**    | ✅ Supported |
+| バッファロー          | [GX-HDMI/U2]({{ '/assets/images/hardware/GX-HDMI_U2.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}            | HDMI  | **DL-165**    | ✅ Supported |
 | エレコム / Logitec    | LDE-SX010U            | VGA   | ?         | Untested |
 | エレコム / Logitec    | LDE-SX015U            | VGA   | ?         | Untested |
-| エレコム / Logitec    | LDE-WX015U            | DVI   | **DL-195**    | Supported |
-| ラトックシステム      | REX-USBDVI            | DVI   | DL-160    | Supported |
-| ラトックシステム      | REX-USBDVI2           | DVI   | DL-195?   | Untested |
-| グリーンハウス        | GH-USB-DVIA           | DVI   | ?         | Untested |
+| エレコム / Logitec    | [LDE-WX015U]({{ '/assets/images/hardware/LDE-WX015U.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}            | DVI   | **DL-195**    | ✅ Supported |
+| ラトックシステム      | [REX-USBDVI]({{ '/assets/images/hardware/REX-USBDVI.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}            | DVI   | DL-160    | ✅ Supported |
+| ラトックシステム      | [REX-USBDVI2]({{ '/assets/images/hardware/REX-USBDVI2.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}           | DVI   | **DL-195**    | ✅ Supported |
+| グリーンハウス        | [GH-USB-DVIA]({{ '/assets/images/hardware/GH-USB-DVIA.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}           | DVI   | **DL-195**    | ✅ Supported |
 | グリーンハウス        | GH-USB-VGAFHD         | VGA   | ?         | Untested |
-| エアリア              | SD-U2VDH              | DVI   | **DL-165**    | Supported[^SD-U2VDH] |
-| ノバック              | [NV-CV100UH]({{ '/assets/images/hardware/NV-CV100UH.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}            | HDMI  | DL-165    | Limited?[^NV-CV100UH] |
-| サンワサプライ        | AD-USB23HD            | HDMI  | **DL-165**    | Supported |
+| エアリア              | [SD-U2VDH]({{ '/assets/images/hardware/SD-U2VDH.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}              | DVI   | **DL-165**    | ✅ Supported[^SD-U2VDH] |
+| ノバック              | [NV-CV100UH]({{ '/assets/images/hardware/NV-CV100UH.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}            | HDMI  | **DL-165**    | ✅ Supported[^NV-CV100UH] |
+| サンワサプライ        | [AD-USB23HD]({{ '/assets/images/hardware/AD-USB23HD.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}            | HDMI  | **DL-165**    | ✅ Supported |
+| サンワサプライ        | AD-USB24VGA           | VGA   | ?         | Untested |
+| サンワサプライ        | [500-KC007(N)]({{ '/assets/images/hardware/500-KC007.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}          | HDMI  | **DL-165**    | ✅ Supported |
 | サンワサプライ        | 500-KC002(N)          | VGA   | ?         | Untested |
-| サンワサプライ        | 500-KC007(N)          | HDMI  | ?         | Untested |
 | SANKA / アユート      | KDU211                | VGA   | ?         | Untested |
 | SANKA / アユート      | KDU221                | DVI   | ?         | Untested |
-| SANKA / アユート      | KDU231                | HDMI  | **DL-165**    | Supported |
+| SANKA / アユート      | [KDU231]({{ '/assets/images/hardware/KDU231.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}                | HDMI  | **DL-165**    | ✅ Supported |
 
 
 
 [^GX-DVIU2AI]: When using the device on a Windows PC, the automatic driver installation feature interferes with operation. It does not work with WinUSB; please use libusbK or libusb0. libusbK is recommended as it is the more modern option.
 [^SD-U2VDH]: Model number on the back: "FG-ADVI-D1-FLHD-1PBN-NA-AR01"
-[^NV-CV100UH]: It has a built-in USB hub. There were times when the video output was unstable until the image appeared.
+[^NV-CV100UH]: It has a built-in USB hub.
 
 
 
@@ -232,7 +233,12 @@ While some of the encryption appears to have been analyzed, this has not yet res
 
 | Manufacturer | Model Number | Output | Chip | Status |
 |---|---|---|---|---|
-| j5create              | [JUA350]({{ '/assets/images/hardware/JUA350.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}               | HDMI  | T6-688SL      | Supported (ESP32-P4, PC only) |
+| Unknown (China)       | [MS9122]({{ '/assets/images/hardware/MS9122.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}               | HDMI  | MS9122      | ✅ Supported (ESP32-P4, PC only) |
+| Unknown (China)       | [MS9132]({{ '/assets/images/hardware/MS9132.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}               | HDMI  | MS9132      | ✅ Supported (ESP32-P4, PC only) |
+| StarTech              | [USB2VGAE3]({{ '/assets/images/hardware/USB2VGAE3.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}               | VGA  | T2-285A       | Not supported. |
+| StarTech              | [USB2DVIE3]({{ '/assets/images/hardware/USB2DVIE3.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}               | DVI  | T2-285B       | Not supported. |
+| j5create              | [JUA330]({{ '/assets/images/hardware/JUA330.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}               | DVI  | T6-688SL      | ✅ Supported (ESP32-P4, PC only) |
+| j5create              | [JUA350]({{ '/assets/images/hardware/JUA350.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}               | HDMI  | T6-688SL      | ✅ Supported (ESP32-P4, PC only) |
 | アイ・オー・データ    | [USB-RGB3/D]({{ '/assets/images/hardware/USB-RGB3_D.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}       | DVI   | DL-3100       | Not supported (DL-3xxx is encrypted) |
 | アイネックス          | [AMC-USBHDA]({{ '/assets/images/hardware/AMC-USBHDA.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}       | HDMI  | FL2000-100-DX | Not supported. NO FRAME BUFFER. | 
 

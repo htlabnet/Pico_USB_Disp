@@ -29,3 +29,6 @@ exclude:
   - vendor/
 
 
+url: "https://htlabnet.github.io"
+image: /assets/images/pico-usb-display-library-1200px.jpg
+
