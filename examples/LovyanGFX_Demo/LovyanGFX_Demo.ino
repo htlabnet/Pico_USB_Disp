@@ -4,11 +4,9 @@
 //    LovyanGFX_Demo - Pico_USB_Disp + LovyanGFX サンプル
 //
 //    必要ライブラリ: LovyanGFX (ライブラリマネージャで導入)
+//    ※ Teensy 4.x は LovyanGFX の 1.2.26 以降のリリースで対応
 //
 //    LGFX_USB_Disp クラスは <usb_disp.h> だけで使える
-//
-//    ※ Teensy 4.x は非対応: LovyanGFX 未対応
-//       Teensy で GUI ライブラリを使う場合は LVGL (LVGL_Demo) を推奨
 //
 //      lcd.init() は USB ディスプレイの接続完了 (READY) 後に呼ぶ。
 //      (解像度が接続時に決まるため)
@@ -27,6 +25,11 @@ static usb_disp_t *disp;
 static LGFX_USB_Disp lcd;               // LovyanGFX デバイス
 static LGFX_Sprite ball(&lcd);          // 動き回るボール (スプライト)
 static bool gui_up = false;
+
+// ボールの1フレームあたり移動量。スプライトはこのぶんの背景マージンを
+// 持たせ、前回位置の消し残りを同じ1回の転送で上書きする
+// (「消してから描く」と、消えた瞬間が画面に走査されてチラつくため)
+enum { BALL_DX = 7, BALL_DY = 5 };
 
 void setup() {
     Serial.begin(115200);
@@ -56,11 +59,11 @@ static void gui_start(void) {
     }
     lcd.drawLine(30, h - 60, w - 30, h - 60, TFT_YELLOW);
 
-    // ボールスプライト (64x64) を作る
-    ball.createSprite(64, 64);
+    // ボールスプライト (64x64 + 背景マージン) を作る
+    ball.createSprite(64 + BALL_DX * 2, 64 + BALL_DY * 2);
     ball.fillScreen(TFT_NAVY);
-    ball.fillCircle(32, 32, 30, TFT_ORANGE);
-    ball.fillCircle(22, 22, 10, TFT_WHITE);
+    ball.fillCircle(BALL_DX + 32, BALL_DY + 32, 30, TFT_ORANGE);
+    ball.fillCircle(BALL_DX + 22, BALL_DY + 22, 10, TFT_WHITE);
 
     gui_up = true;
 }
@@ -79,14 +82,12 @@ void loop() {
         // ボールを跳ね回らせる (可動域は枠線や円と重ならない内側だけ)
         int xmin = 40, xmax = lcd.width() - 40 - 64;
         int ymin = 260, ymax = lcd.height() - 80 - 64;
-        static int x = 100, y = 300, dx = 7, dy = 5;
-        static int px = 100, py = 300;
-        lcd.fillRect(px, py, 64, 64, TFT_NAVY);     // 前回位置を消す
+        static int x = 100, y = 300, dx = BALL_DX, dy = BALL_DY;
         x += dx; y += dy;
         if (x < xmin || x > xmax) { dx = -dx; x += dx; }
         if (y < ymin || y > ymax) { dy = -dy; y += dy; }
-        ball.pushSprite(x, y);
-        px = x; py = y;
+        // 背景マージン込みで一括転送 (前回位置の消去を兼ねる)
+        ball.pushSprite(x - BALL_DX, y - BALL_DY);
         delay(16);
     }
 }

@@ -18,7 +18,10 @@
 namespace lgfx {
 
 struct Panel_USB_Disp : public lgfx::Panel_Device {
-    Panel_USB_Disp(usb_disp_t *disp = nullptr) : _disp(disp) {}
+    Panel_USB_Disp(usb_disp_t *disp = nullptr) : _disp(disp) {
+        // HAL はバルク送信をバッファに蓄積し flush で送出する
+        _auto_display = true;
+    }
 
     void setUsbDisp(usb_disp_t *disp) { _disp = disp; }
     usb_disp_t *getUsbDisp(void) const { return _disp; }
@@ -79,12 +82,14 @@ struct Panel_USB_Disp : public lgfx::Panel_Device {
     void waitDMA(void) override {}
     bool dmaBusy(void) override { return false; }
     void waitDisplay(void) override {
-        if (_disp) usb_disp_flush(_disp, 5000);
+        if (_disp) usb_disp_flush(_disp, 100);
     }
     bool displayBusy(void) override { return false; }
     void display(uint_fast16_t, uint_fast16_t, uint_fast16_t,
                  uint_fast16_t) override {
-        if (_disp) usb_disp_flush(_disp, 5000);
+        // auto display により描画トランザクション毎に呼ばれる
+        // タイムアウトは1フレーム分の送信残に対して十分な値
+        if (_disp) usb_disp_flush(_disp, 100);
     }
     bool isReadable(void) const override { return false; }
     bool isBusShared(void) const override { return false; }
