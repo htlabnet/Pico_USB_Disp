@@ -257,7 +257,7 @@ sub_op 0x07 POWER          [A6 07 on data(=2) 0 0 0 0]
 ```
 
 - `color_in = 0x21` (RGB888 in, YUV422 out). The chip performs the RGB->YUV conversion; the host sends packed 24 bpp. RGB565 input is listed in the driver enums but does not actually work.
-- `vic` is a mode code; the values used are 1280x720@60 = **79** (matches the high byte of the MS912x mode number `0x4F00`) and 1920x1080@60 = **16** (the standard CEA-861 VIC for 1080p60).
+- `vic` is a mode code in **MacroSilicon's own numbering** (the official driver's `g_support_mode` table), not CEA-861: 1280x720@60 = **79**, 1920x1080@60 = **129**. These match the high byte of the MS912x mode numbers (`0x4F00` / `0x8100`). Passing the CEA VIC 16 for 1080p is accepted silently but the panel never lights up.
 - Important registers: `0x32` = HPD, `0xC000+` = EDID, `0xD003` = current frame index, `0xFB07` bit1 = HDMI TX mute.
 
 
@@ -274,6 +274,8 @@ loop:
 ```
 
 The chip converts RGB24 -> YUV422 and drives the HDMI output. Only full-frame mode works; partial updates are not available.
+
+Caution (measured on a PID 0x9133 unit): after a cold start the chip does **not** start its bulk-receive DMA until it has seen a TRIGGER_FRAME command - the endpoint ACKs only ~88 KB (internal FIFO) and then NAKs forever. A sender that waits for the full frame to complete before issuing the trigger therefore deadlocks. Do what MacroSilicon's own driver does: send the frame with a timeout and issue ZLP + TRIGGER_FRAME **even if the bulk transfer did not complete**; the trigger (EP0) always gets through, the DMA starts, the stuck data drains, and the next frame flows normally.
 
 
 ### 3.3 Keepalive requirement

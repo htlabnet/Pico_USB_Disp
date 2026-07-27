@@ -48,6 +48,8 @@ struct usb_disp_hal {
     usb_device_handle_t dev;
     volatile bool scan_needed;       // NEW_DEV 通知 → バス上の全デバイス走査
     volatile bool gone;              // DEV_GONE 通知 (自分のデバイス)
+    uint32_t scan_retry_ms;          // 開けなかったデバイスの再走査時刻 (0=なし)
+    uint8_t scan_retry_cnt;          // 再走査の残り試行回数 (NEW_DEV で補充)
     volatile bool attached;
     uint16_t vid, pid;
     uint8_t bulk_ep;
@@ -245,9 +247,21 @@ static const uint8_t *find_bulk_out_ep(const uint8_t *blob, uint16_t len) {
 // pending_probe を立てて usb_disp_hal_poll(アプリタスク) に後半を任せる
 // 戻り値: true = このデバイスを掴んだ (h->dev != NULL のまま)
 static bool device_setup(struct usb_disp_hal *h, uint8_t addr) {
-    if (usb_host_device_open(s_client, addr, &h->dev) != ESP_OK) {
-        usb_disp_log("[HAL] device_open failed (addr=%u)", addr);
+    esp_err_t err = usb_host_device_open(s_client, addr, &h->dev);
+    if (err != ESP_OK) {
+        // ESP_ERR_INVALID_STATE: まだ列挙中か切断処理中のデバイス。
+        // (arduino-esp32 3.3.11 = IDF のハブサポート有効ビルドでは
+        //  "usbh_devs_open error: ESP_ERR_INVALID_STATE" の E ログも出るが、
+        //  一時的な状態で害はない)
+        // 列挙完了時の NEW_DEV で拾い直せるが、イベントを先に消費して
+        // しまった場合の取りこぼし対策として時限再走査も仕掛けておく
+        usb_disp_log("[HAL] device_open failed (addr=%u err=0x%X)", addr,
+                     (unsigned)err);
         h->dev = NULL;
+        if (err == ESP_ERR_INVALID_STATE && h->scan_retry_cnt > 0) {
+            h->scan_retry_cnt--;
+            h->scan_retry_ms = usb_disp_hal_ms() + 250;
+        }
         return false;
     }
     const usb_device_desc_t *ddesc;
@@ -525,6 +539,7 @@ static void finish_setup(struct usb_disp_hal *h, const uint8_t *scan,
 static void device_teardown(struct usb_disp_hal *h) {
     h->attached = false;
     h->pending_probe = false;
+    h->scan_retry_ms = 0;
     if (h->dev == NULL) return;
     // 未完了転送はスタックが DEV_GONE 時にエラー完了させる →
     // コールバックがセマフォを返すので少し待ってから解放する
@@ -566,6 +581,7 @@ static void client_event_cb(const usb_host_client_event_msg_t *msg,
         // ハブ経由ではハブ自身や同居デバイスの分も飛んでくるので、
         // アドレスは覚えず「走査が必要」フラグだけ立てる
         h->scan_needed = true;
+        h->scan_retry_cnt = 8;   // 列挙中デバイスの再走査試行を補充
         break;
     case USB_HOST_CLIENT_EVENT_DEV_GONE:
         // 自分が掴んでいるデバイスの切断のみ扱う
@@ -606,6 +622,12 @@ static void client_task(void *arg) {
             h->gone = false;
             device_teardown(h);
             // ハブ経由で他の DisplayLink が残っている可能性 → 再走査
+            h->scan_needed = true;
+        }
+        // 列挙中で開けなかったデバイスの時限再走査 (device_setup 参照)
+        if (h->scan_retry_ms && h->dev == NULL &&
+            (int32_t)(usb_disp_hal_ms() - h->scan_retry_ms) >= 0) {
+            h->scan_retry_ms = 0;
             h->scan_needed = true;
         }
         if (h->scan_needed && h->dev == NULL) {

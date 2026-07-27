@@ -18,6 +18,7 @@
 
 #if USB_DISP_PORT_ESP32
   #include "driver/jpeg_encode.h"   // ESP32-P4 HW JPEG エンコーダ
+  #include "esp_heap_caps.h"        // PSRAM 有無の診断用
 #else
   #include "usb_disp_prot_t6_jpeg.h"  // PC: 依存なしソフトエンコーダ
 #endif
@@ -45,6 +46,7 @@ typedef struct {
     bool dirty;
     bool m24;             // 24bit マスタ (ESP32: FB=RGB888 / PC は常に888)
     uint8_t bpp;          // FB のバイト/px (2 or 3)
+    uint16_t alloc_fail_cnt;  // FB 確保失敗の連発ログ抑制
 #if USB_DISP_PORT_ESP32
     jpeg_encoder_handle_t enc;
 #endif
@@ -100,11 +102,16 @@ static bool t6_alloc_bufs(usb_disp_t *d, t6_priv_t *p, uint16_t w, uint16_t h) {
     p->jout_cap = USB_DISP_T6_JOUT_CAP;
 #endif
     if (!p->fb || !p->jout) {
-        usb_disp_log("[T6] FB alloc failed (%lu KB)",
-                     (unsigned long)(need / 1024));
+        // モード自動選択が候補を総当たりするため失敗は連発する → 抑制
+        p->alloc_fail_cnt++;
+        if (p->alloc_fail_cnt <= 8 || (p->alloc_fail_cnt & 0x3F) == 0) {
+            usb_disp_log("[T6] FB alloc failed (%lu KB)",
+                         (unsigned long)(need / 1024));
+        }
         t6_free_bufs(p);
         return false;
     }
+    p->alloc_fail_cnt = 0;
     p->fb_bytes = need;
     memset(p->fb, 0, need);  // 黒
     return true;
@@ -254,6 +261,16 @@ static bool t6_attach(usb_disp_t *d) {
     d->max_area = max_area;
     usb_disp_log("[T6] %u modes, max_area=%lu px", p->nmodes,
                  (unsigned long)max_area);
+#if USB_DISP_PORT_ESP32
+    // T6 はフルフレーム FB + JPEG 出力バッファが必須
+    // PSRAM 無効ビルド (P4 のボード設定 PSRAM: Disabled) では確保できず
+    // 表示が出ないので、原因が分かるようにここで明示しておく
+    if (heap_caps_get_total_size(MALLOC_CAP_SPIRAM) == 0) {
+        usb_disp_log("[T6] warning: PSRAM not available. Frame buffer "
+                     "alloc will fail - enable board option PSRAM");
+    }
+#endif
+    p->alloc_fail_cnt = 0;
     return p->nmodes > 0;
 }
 

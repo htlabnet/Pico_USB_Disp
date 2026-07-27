@@ -16,6 +16,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if USB_DISP_PORT_ESP32
+  #include "esp_heap_caps.h"   // PSRAM 有無の診断用
+#endif
+
 #define USB_DISP_MS_KEEPALIVE_MS 2000  // MS913x: 公式ドライバと同じ2秒毎再送
 
 typedef enum { MS_VAR_912X, MS_VAR_913X } ms_variant_t;
@@ -37,6 +41,7 @@ typedef struct {
     uint32_t last_send_ms;
     uint32_t mute_chk_ms;  // MS913x: HDMIミュート監視の前回時刻
     uint32_t frames_dbg;  // 診断ログ用フレームカウンタ
+    uint16_t alloc_fail_cnt;  // FB 確保失敗の連発ログ抑制
 } ms_priv_t;
 
 static ms_priv_t s_ms[USB_DISP_MAX];
@@ -175,11 +180,16 @@ static bool ms_alloc_bufs(ms_priv_t *p, uint16_t w, uint16_t h) {
     p->fb565 = (uint16_t *)malloc(need565);
     p->wire = (uint8_t *)malloc(needw);
     if (!p->fb565 || !p->wire) {
-        usb_disp_log("[MS91xx] FB alloc failed (%lu KB)",
-                     (unsigned long)((need565 + needw) / 1024));
+        // モード自動選択が候補を総当たりするため失敗は連発する → 抑制
+        p->alloc_fail_cnt++;
+        if (p->alloc_fail_cnt <= 8 || (p->alloc_fail_cnt & 0x3F) == 0) {
+            usb_disp_log("[MS91xx] FB alloc failed (%lu KB)",
+                         (unsigned long)((need565 + needw) / 1024));
+        }
         ms_free_bufs(p);
         return false;
     }
+    p->alloc_fail_cnt = 0;
     p->fb_bytes = need565;
     p->wire_bytes = needw;
     memset(p->fb565, 0, need565);
@@ -295,15 +305,27 @@ static void ms_convert_dirty(ms_priv_t *p) {
 
 static bool ms_send_frame(usb_disp_t *d, ms_priv_t *p) {
     if (p->var == MS_VAR_913X) {
-        // RGB24 全面 1 ストリーム + ZLP + frame_index トグル + trigger
-        if (usb_disp_hal_bulk_write(d->hal, p->wire, (uint32_t)p->wire_bytes)
-            != p->wire_bytes)
-            return false;
+        // RGB24 全面 1 ストリーム + ZLP + frame_index トグル + trigger。
+        // 送信が不完全でもトリガーまで必ず進める (公式ドライバと同じ流儀)。
+        // 0x9133 実測: チップは TRIGGER_FRAME を受けるまでバルク受信 DMA を
+        // 起こさないことがあり (-88KB の FIFO が埋まって NAK 連発)、
+        // ここで諦めるとトリガーが永遠に出ずデッドロックする。
+        // トリガーは EP0 経由なので詰まっていても届き、受信 DMA が起きて
+        // 滞留データが流れ出す → 次フレームから正常化する
+        uint32_t sent = usb_disp_hal_bulk_write(d->hal, p->wire,
+                                                (uint32_t)p->wire_bytes);
         bool zok = usb_disp_hal_bulk_zlp(d->hal);  // フレーム長は 512 の倍数
-        if (!usb_disp_hal_bulk_flush(d->hal, 5000)) return false;
+        bool fok = usb_disp_hal_bulk_flush(d->hal, 5000);
         p->frame_index ^= 1;
         bool tok = ms3_vid_cmd(d, 0x00, (uint8_t)p->frame_index, 100, 0, 0,
                                0, 0);
+        if (sent != p->wire_bytes || !zok || !fok) {
+            usb_disp_log("[MS913x] partial frame: sent=%lu/%lu zlp=%d "
+                         "flush=%d trig=%d",
+                         (unsigned long)sent, (unsigned long)p->wire_bytes,
+                         (int)zok, (int)fok, (int)tok);
+            return false;
+        }
         if (p->first) {
             bool vok = ms3_vid_cmd(d, 0x05, 1, 0, 0, 0, 0, 0);
             ms3_screen_enable(d, true);               // HDMI unmute
@@ -373,14 +395,21 @@ static bool ms_attach(usb_disp_t *d) {
         usb_disp_log("[MS91xx] control probe failed");
         return false;
     }
+#if USB_DISP_PORT_ESP32
+    // MS91xx はフルフレーム FB + ワイヤバッファが必須
+    // PSRAM 無効ビルド (P4 のボード設定 PSRAM: Disabled) では確保できず
+    // 表示が出ないので、原因が分かるようにここで明示しておく
+    if (heap_caps_get_total_size(MALLOC_CAP_SPIRAM) == 0) {
+        usb_disp_log("[MS91xx] warning: PSRAM not available. Frame buffer "
+                     "alloc will fail - enable board option PSRAM");
+    }
+#endif
+    p->alloc_fail_cnt = 0;
     if (p->var == MS_VAR_913X) {
         int16_t hi = ms_read_reg(d, 0xFF00), lo = ms_read_reg(d, 0xFF01);
         usb_disp_log("[MS913x] chip_id=%02X%02X", hi, lo);
         d->chip = USB_DISP_CHIP_MS913X;
-        // 1080p (vic=16) はコールド初期化で表示されない事象を実測
-        // (720p→1080p のモード遷移経由なら表示された例がある。要追試)。
-        // 確実に動く 720p に自動選択を制限する
-        d->max_area = 921600;   // 1280x720
+        d->max_area = 2073600;  // 1920x1080
     } else {
         d->chip = USB_DISP_CHIP_MS912X;
         d->max_area = 2073600;  // 1920x1080
@@ -407,9 +436,11 @@ static uint16_t ms_read_edid(usb_disp_t *d, uint16_t offset, uint8_t *buf,
     return len;
 }
 
-// 既知モード (MS912x の mode_id / MS913x の CEA VIC)
+// 既知モード (MS912x の mode_id / MS913x の vic)
+// MS913x の vic は CEA-861 ではなく MS 独自番号 (公式ドライバ g_support_mode)
+// MS912x の mode_id 上位バイトと同じ体系 (0x8100 -> 129 / 0x4F00 -> 79)
 static const struct { uint16_t w, h, mode_id; uint8_t vic; } k_ms_modes[] = {
-    { 1920, 1080, 0x8100, 16 },
+    { 1920, 1080, 0x8100, 129 },
     { 1280,  720, 0x4F00, 79 },
 };
 
@@ -446,6 +477,15 @@ static bool ms_set_mode(usb_disp_t *d, const usb_disp_mode_t *m) {
         ms3_pipe_enable(d, p->w, p->h, k_ms_modes[mi].vic);
         int16_t fsw = ms_read_reg(d, 0xD003);
         p->frame_index = (fsw > 0) ? 1 : 0;
+        // 先行トリガー: バルク受信 DMA を起こす。まだミュート中なので画面には出ない。
+        //  (ms_send_frame の 0x9133 実測コメント参照)
+        // これが無いと初回フレームが FIFO 分 (-88KB) で詰まり、
+        // トリガー到達までの数秒間デッドロック状態になる。
+        // コールドスタートではこの先行トリガーも空振りすることがあるが、
+        // その場合も ms_send_frame の partial 経路 (詰まってもトリガーを送る) 
+        // が数秒で受信 DMA を起こし、次のフレームから正常化する
+        usb_disp_prot_sleep_ms(200);
+        ms3_vid_cmd(d, 0x00, (uint8_t)p->frame_index, 100, 0, 0, 0, 0);
         p->first = true;
     } else {
         ms2_power(d, false);

@@ -92,7 +92,8 @@ jobs:
 
           build_esp  esp32s2       esp32:esp32:esp32s2
           build_esp  esp32s3       esp32:esp32:esp32s3
-          build_esp  esp32p4       esp32:esp32:esp32p4
+          # P4 は PSRAM 必須
+          build_esp  esp32p4       esp32:esp32:esp32p4:PSRAM=enabled
           build_teensy teensy40    teensy:avr:teensy40
           build_teensy teensy41    teensy:avr:teensy41
           # Pico 系は RP2040 / RP2350 の両方を全ピンパターンでビルドする

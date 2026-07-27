@@ -46,7 +46,7 @@ The following chips are currently supported:
 | MCT Trigger 5         | 1920x1200             | Not tested. Hardware not yet acquired. |
 | MCT Trigger 6         | 3840x2160 *           | ESP32-P4, PC |
 | MacroSilicon MS912x   | 1920x1080             | ESP32-P4, PC |
-| MacroSilicon MS913x   | 1920x1080 *           | ESP32-P4, PC |
+| MacroSilicon MS913x   | 1920x1080             | ESP32-P4, PC |
 | Fresco Logic FL2000   | -                     | Not supported. NO FRAME BUFFER. |
 | Microchip UFX6000     | -                     | Hardware is difficult to source. |
 | Microchip UFX7000     | -                     | Hardware is difficult to source. |
@@ -59,7 +59,6 @@ While some of the encryption appears to have been analyzed, this has not yet res
  - The MCT Trigger 6 chip requires USB High-Speed communication, and the video data must be JPEG-encoded. Support is limited to the ESP32-P4 and the PC.
  - The MCT Trigger 6 chip supports 4K resolution. However,the library's default build caps the mode width at 2048 (`USB_DISP_MAX_WIDTH`); 4K would need `-DUSB_DISP_MAX_WIDTH=3840` and far more RAM than an MCU has, so treat 4K as PC (libusb) territory.
  - The MacroSilicon MS91xx chips require USB High-Speed communication, so they are supported only on the ESP32-P4 and the PC.
- - The MacroSilicon MS913x chip supports FHD resolution. However,the library currently limits the MS913x to 1280x720 - 1920x1080 did not light up from a cold start on real hardware (it has been seen working after a 720p -> 1080p mode transition; under investigation).
  - Fresco Logic FL2000 chip does not have a frame buffer; it requires data input at the same rate as the output frame rate and functions solely as a simple interface converter. This is not practical for an MCU.
 
 
@@ -176,7 +175,7 @@ While some of the encryption appears to have been analyzed, this has not yet res
 | DoubleSight   | DS-90U            | 9.0   | 1024x600  | ?         | Untested |
 | AOC           | e1649Fwu          | 15.6  | 1366x768  | ?         | Untested |
 | センチュリー  | LCD-4300U         | 4.3   | 800x480   | ?         | Untested |
-| センチュリー  | [LCD-8000U]({{ '/assets/images/hardware/LCD-8000U.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}         | 8.0   | 800x600   | DL-120    | Supported |
+| センチュリー  | [LCD-8000U]({{ '/assets/images/hardware/LCD-8000U.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}         | 8.0   | 800x600   | DL-120    | ✅ Supported |
 | センチュリー  | LCD-8000UD        | 8.0   | 800x600   | ?         | Untested[^LCD-8000UD] |
 | センチュリー  | LCD-8000U2        | 8.0   | 800x600   | ?         | Untested |
 | センチュリー  | LCD-8000U2B       | 8.0   | 800x600   | ?         | Untested |

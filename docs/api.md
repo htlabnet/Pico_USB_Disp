@@ -217,7 +217,7 @@ Blank / unblank the screen.
 ## Changing the resolution (mode)
 
 All of these reject modes exceeding the chip's pixel-count limit and return false. 
-Additional per-chip constraints: the **T6** only accepts modes present in the device's own mode table (width/height/refresh must match an entry), and **MS912x/MS913x** only support their known modes - 1920x1080 and 1280x720 (the MS913x is further limited to 1280x720 by the library for now; see the hardware page). 
+Additional per-chip constraints: the **T6** only accepts modes present in the device's own mode table (width/height/refresh must match an entry), and **MS912x/MS913x** only support their known modes - 1920x1080 and 1280x720. 
 Screen contents are undefined after a mode change, so redraw everything.
 
 | Function | Description |
