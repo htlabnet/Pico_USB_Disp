@@ -47,9 +47,13 @@ The following chips are currently supported:
 | MCT Trigger 6         | 3840x2160 *           | ESP32-P4, PC |
 | MacroSilicon MS912x   | 1920x1080             | ESP32-P4, PC |
 | MacroSilicon MS913x   | 1920x1080             | ESP32-P4, PC |
+| GUD Protocol          | -                     | Not supported. |
 | Fresco Logic FL2000   | -                     | Not supported. NO FRAME BUFFER. |
-| Microchip UFX6000     | -                     | Hardware is difficult to source. |
-| Microchip UFX7000     | -                     | Hardware is difficult to source. |
+| SiS + USB Controller  | -                     | Hardware is difficult to source. |
+| SMSC / Microchip UFX6000     | -                     | Hardware is difficult to source. |
+| SMSC / Microchip UFX7000     | -                     | Hardware is difficult to source. |
+| Grain Media GM12U320  | -                     | Hardware is difficult to source. |
+| STMicro SPEAr family  | -                     | Hardware is difficult to source. |
 
 
  - I recommend the DisplayLink DL-165 and DL-195.
@@ -145,8 +149,7 @@ While some of the encryption appears to have been analyzed, this has not yet res
 | 東芝              | dynadock U (PA3575)           | VGA / DVI | ?         | Untested |
 | 東芝              | dynadock U10 (PA3541)         | VGA / DVI | ?         | Untested |
 | 東芝              | dynadock V10 (PA3778)         | DVI       | ?         | Untested |
-| Lenovo            | 45K1610                       | DVI       | ?         | Untested |
-| Lenovo            | 51J0246                       | DVI       | ?         | Untested |
+| Lenovo            | 0A33942                       | DVI       | ?         | Untested |
 | Kensington        | K33367                        | VGA       | ?         | Untested |
 | Kensington        | K33415                        | VGA       | ?         | Untested |
 | Kensington        | K33930                        | DVI       | ?         | Untested |
@@ -240,6 +243,7 @@ While some of the encryption appears to have been analyzed, this has not yet res
 | j5create              | [JUA350]({{ '/assets/images/hardware/JUA350.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}               | HDMI  | T6-688SL      | ✅ Supported (ESP32-P4, PC only) |
 | アイ・オー・データ    | [USB-RGB3/D]({{ '/assets/images/hardware/USB-RGB3_D.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}       | DVI   | DL-3100       | Not supported (DL-3xxx is encrypted) |
 | アイネックス          | [AMC-USBHDA]({{ '/assets/images/hardware/AMC-USBHDA.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"}       | HDMI  | FL2000-100-DX | Not supported. NO FRAME BUFFER. | 
+| Lenovo            | [M01060 (P/N: 45K1610, ASM: 51J0246, FRU: 51J0452)]({{ '/assets/images/hardware/M01060.jpg' | relative_url }}){:target="_blank" rel="noopener noreferrer"} | DVI       | STMicro SPEAr | Not supported. |
 
 
 
