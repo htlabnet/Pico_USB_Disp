@@ -1,0 +1,45 @@
+# ESP Component Registry (components.espressif.com) へのアップロード
+#
+# v* タグの push で実行される (Web の Release 作成で生えたタグでも発火する):
+#   1. タグ名 / library.properties / idf_component.yml のバージョン一致を検証
+#   2. https://components.espressif.com/components/htlabnet/pico_usb_disp へアップロード
+#
+
+name: upload-component
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      # バージョンの定義チェック
+      - name: Check version consistency
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          set -e
+          TAG="${GITHUB_REF_NAME#v}"
+          PROP=$(sed -n 's/^version=//p' library.properties | tr -d '\r')
+          IDF=$(sed -n 's/^version:[[:space:]]*"\?\([^"]*\)"\?.*/\1/p' idf_component.yml | tr -d '\r')
+          echo "tag=$TAG  library.properties=$PROP  idf_component.yml=$IDF"
+          test "$TAG" = "$PROP" || { echo "::error::library.properties の version がタグと一致しません"; exit 1; }
+          test "$TAG" = "$IDF"  || { echo "::error::idf_component.yml の version がタグと一致しません"; exit 1; }
+
+      # version を渡さない = idf_component.yml の version がそのまま使われる
+      - name: Upload component to the ESP Component Registry
+        uses: espressif/upload-components-ci-action@v1
+        with:
+          name: "pico_usb_disp"
+          namespace: "htlabnet"
+          api_token: ${{ secrets.IDF_COMPONENT_API_TOKEN }}
+
+

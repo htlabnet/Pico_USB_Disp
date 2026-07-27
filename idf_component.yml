@@ -15,6 +15,7 @@ files:
   exclude:
     - "docs/**/*"
     - ".github/**/*"
+    - ".gitignore"
     - "examples/**/build/**/*"
     - "build/**/*"
     - "firmware/**/*"

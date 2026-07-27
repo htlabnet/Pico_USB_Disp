@@ -16,6 +16,22 @@ Because the adapter generates a standards-compliant video signal, it generally p
 
 See [introduction page](https://htlabnet.github.io/Pico_USB_Disp).
 
+日本語での解説記事は[こちら](https://htlab.net/electronics/mcu/raspberrypi/pico-usb-display-library/)にあります。
+
+
+
+## Installation
+
+**Arduino** - Search for **Pico_USB_Disp** in the Library Manager and install it.
+
+**ESP-IDF** - Add the component to your project:
+
+```bash
+idf.py add-dependency "htlabnet/pico_usb_disp^1.0.0"
+```
+
+See the [Library Usage](https://htlabnet.github.io/Pico_USB_Disp/usage/) for wiring, and code examples.
+
 
 
 
